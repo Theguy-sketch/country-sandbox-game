@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Country Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e); /* Dark blue-grey gradient */
+            color: #ecf0f1; /* Light grey text */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for better content flow */
+            min-height: 100vh;
+            overflow-y: auto; /* Allow scrolling for smaller screens */
+            box-sizing: border-box;
+            position: relative; /* Needed for absolute positioning of fullscreen button */
+        }
+
+        /* Fullscreen Button in Top Left */
+        #fullscreen-button {
+            position: absolute;
+            top: 20px; /* Adjust padding from top */
+            left: 20px; /* Adjust padding from left */
+            z-index: 1001; /* Ensure it's above other elements */
+            background: linear-gradient(180deg, #f1c40f, #e67e22); /* Yellow to orange gradient */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            min-width: unset; /* Override previous min-width */
+        }
+
+        #fullscreen-button:hover {
+            background: linear-gradient(180deg, #e67e22, #f1c40f);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        #fullscreen-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Game Container */
+        .game-container {
+            background-color: #34495e; /* Slightly lighter dark blue-grey */
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: 30px;
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr; /* Single column by default */
+            gap: 25px;
+            animation: fadeIn 1s ease-out;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr 1.5fr; /* Two columns for larger screens */
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .game-container {
+                grid-template-columns: 1fr 2fr; /* Wider map area for larger screens */
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* Section Styling */
+        .game-section {
+            background-color: #2c3e50; /* Darker background for sections */
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .game-section h2 {
+            color: #ecf0f1;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            text-align: center;
+            border-bottom: 2px solid #3498db; /* Blue accent */
+            padding-bottom: 10px;
+        }
+
+        /* Stats Display */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            text-align: center;
+        }
+
+        .stat-item {
+            background-color: #3f5166; /* Slightly lighter than section background */
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-item strong {
+            display: block;
+            font-size: 1.1em;
+            color: #ecf0f1;
+            margin-bottom: 5px;
+        }
+
+        .stat-item span {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db; /* Blue for values */
+        }
+
+        /* Message Box */
+        #message-box {
+            background-color: #2980b9; /* Blue background for messages */
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.1em;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease-in-out;
+            opacity: 0; /* Hidden by default */
+            transform: translateY(-20px);
+            pointer-events: none; /* Allow clicks through when hidden */
+        }
+
+        #message-box.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .game-button {
+            background: linear-gradient(180deg, #3498db, #2980b9); /* Blue gradient */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            min-width: 150px;
+        }
+
+        .game-button:hover {
+            background: linear-gradient(180deg, #2980b9, #3498db);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-button.red {
+            background: linear-gradient(180deg, #e74c3c, #c0392b); /* Red gradient */
+        }
+        .game-button.red:hover {
+            background: linear-gradient(180deg, #c0392b, #e74c3c);
+        }
+
+        .game-button.green {
+            background: linear-gradient(180deg, #2ecc71, #27ae60); /* Green gradient */
+        }
+        .game-button.green:hover {
+            background: linear-gradient(180deg, #27ae60, #2ecc71);
+        }
+
+        /* Building Costs Display */
+        .build-option {
+            background-color: #3f5166;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .build-option h3 {
+            margin: 0;
+            color: #ecf0f1;
+            font-size: 1.3em;
+        }
+
+        .build-option p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+
+        .build-option .costs span {
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        /* Map Styling */
+        .map-grid-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1; /* Allow map to take available space */
+            padding: 10px;
+            overflow: auto; /* Enable scrolling for large maps */
+        }
+
+        #game-map {
+            display: grid;
+            border: 2px solid #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+            border-radius: 10px;
+            overflow: hidden; /* Ensure rounded corners apply to cells */
+            max-width: 100%; /* Ensure map doesn't overflow */
+            max-height: 500px; /* Limit height for responsiveness */
+        }
+
+        .map-tile {
+            width: 40px; /* Fixed size for tiles */
+            height: 40px;
+            background-color: #5a6a7c; /* Neutral tile color */
+            border: 1px solid #4a5a6c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            user-select: none; /* Prevent text selection */
+        }
+
+        .map-tile.owned {
+            background-color: #2ecc71; /* Green for owned tiles */
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-tile.owned:hover {
+            background-color: #27ae60;
+            transform: scale(1.05);
+        }
+
+        .map-tile.empty:hover {
+            background-color: #7f8c8d; /* Grey for empty tiles on hover */
+            transform: scale(1.05);
+        }
+
+        .map-tile.selected {
+            border: 2px solid #f1c40f; /* Yellow border for selected tile */
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
+        }
+
+        /* Game Over Screen */
+        #game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #ecf0f1;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease;
+        }
+
+        #game-over-screen.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #game-over-screen h1 {
+            font-size: 4em;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+
+        #game-over-screen p {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+
+        /* Responsive adjustments for map tiles */
+        @media (max-width: 600px) {
+            .map-tile {
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+            .game-container {
+                padding: 15px;
+                gap: 15px;
+            }
+            .game-section {
+                padding: 15px;
+                gap: 10px;
+            }
+            .game-section h2 {
+                font-size: 1.5em;
+            }
+            .game-button {
+                padding: 10px 20px;
+                font-size: 1em;
+                min-width: unset;
+            }
+            #fullscreen-button {
+                top: 10px;
+                left: 10px;
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="game-button" id="fullscreen-button">Toggle Fullscreen</button> <div class="game-container">
+        <div class="left-panel game-section">
+            <h1 style="text-align: center; color: #3498db; font-size: 2.5em; margin-bottom: 20px;">Country Sandbox</h1> <div id="message-box" class="message-box"></div>
+
+            <div class="status-section game-section">
+                <h2>Your Country: <span id="country-name"></span></h2>
+                <div class="stats-grid">
+                    <div class="stat-item"><strong>Turn</strong><span id="turn-display">1</span></div>
+                    <div class="stat-item"><strong>Money</strong><span id="money-display">$1000</span></div>
+                    <div class="stat-item"><strong>Materials</strong><span id="materials-display">500</span></div>
+                    <div class="stat-item"><strong>Population</strong><span id="population-display">100</span></div>
+                    <div class="stat-item"><strong>Happiness</strong><span id="happiness-display">70%</span></div>
+                </div>
+            </div>
+
+            <div class="build-section game-section">
+                <h2>Build Structures</h2>
+                <div class="button-group">
+                    <div class="build-option">
+                        <h3>Farm</h3>
+                        <p class="costs">Cost: <span class="money">$100</span>, <span class="materials">50 Materials</span></p>
+                        <button class="game-button green" id="build-farm">Build Farm</button>
+                    </div>
+                    <div class="build-option">
+                        <h3>Factory</h3>
+                        <p class="costs">Cost: <span class="money">$300</span>, <span class="materials">150 Materials</span></p>
+                        <button class="game-button green" id="build-factory">Build Factory</button>
+                    </div>
+                    <div class="build-option">
+                        <h3>Mine</h3>
+                        <p class="costs">Cost: <span class="money">$200</span>, <span class="materials">100 Materials</span></p>
+                        <button class="game-button green" id="build-mine">Build Mine</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section game-section">
+                <h2>Actions</h2>
+                <div class="button-group">
+                    <button class="game-button" id="next-turn-button">End Turn</button>
+                    <button class="game-button red" id="reset-game-button">Reset Game</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel game-section">
+            <h2>Your Territory</h2>
+            <div class="map-grid-container">
+                <div id="game-map"></div>
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="game-button" id="expand-territory-button">Expand Territory</button>
+            </div>
+            <p style="text-align: center; font-size: 0.9em; color: #bdc3c7;">Click an empty adjacent tile to select for expansion.</p>
+        </div>
+    </div>
+
+    <div id="game-over-screen">
+        <h1>GAME OVER!</h1>
+        <p id="game-over-message"></p>
+        <button class="game-button" onclick="location.reload()">Restart Game</button>
+    </div>
+
+    <script>
+        // --- Game Configuration ---
+        const CONFIG = {
+            STARTING_MONEY: 1000,
+            STARTING_MATERIALS: 500,
+            STARTING_POPULATION: 100,
+            STARTING_HAPPINESS: 70,
+            MAP_SIZE: 10, // 10x10 grid
+            POPULATION_GROWTH_FACTOR: 0.005, // 0.5% per happiness point (e.g., 70 happiness = 3.5% growth)
+            BASE_POPULATION_CONSUMPTION_MONEY: 0.1, // Money per person per turn
+            BASE_POPULATION_CONSUMPTION_MATERIALS: 0.05, // Materials per person per turn
+            HAPPINESS_FLUCTUATION: { min: -2, max: 3 },
+            STABILITY_FLUCTUATION: { min: -1, max: 2 },
+            EVENT_CHANCE_PER_TURN: 0.3, // 30% chance of an event
+            GAME_OVER_MONEY_THRESHOLD: -200, // Game over if money drops below this
+            GAME_OVER_HAPPINESS_THRESHOLD: 10, // Game over if happiness drops below this
+        };
+
+        const BUILDINGS_DATA = {
+            "Farm": {
+                cost: { money: 100, materials: 50 },
+                production: { money: 5, materials: 10 },
+                effect: { happiness: 1 }
+            },
+            "Factory": {
+                cost: { money: 300, materials: 150 },
+                production: { money: 20, materials: 5 },
+                effect: { pollution: 1, stability: -1 } // Example negative effect
+            },
+            "Mine": {
+                cost: { money: 200, materials: 100 },
+                production: { money: 10, materials: 25 },
+                effect: { materials_bonus: 0.1 } // Example percentage bonus
+            }
+        };
+
+        const EVENTS_DATA = [
+            {
+                name: "Good Harvest",
+                message: "Your farms produced abundantly! Gained money and materials. Happiness increased slightly.",
+                effect: (country) => {
+                    const moneyGain = Math.floor(Math.random() * 151) + 50; // 50-200
+                    const materialsGain = Math.floor(Math.random() * 201) + 100; // 100-300
+                    country.money += moneyGain;
+                    country.materials += materialsGain;
+                    country.happiness = Math.min(100, country.happiness + 5);
+                    return `Gained $${moneyGain} and ${materialsGain} materials.`;
+                }
+            },
+            {
+                name: "Disease Outbreak",
+                message: "A disease outbreak has occurred! Lost population and spent money. Happiness and stability decreased.",
+                effect: (country) => {
+                    const populationLoss = Math.floor(Math.random() * 16) + 5; // 5-20
+                    const moneyCost = Math.floor(Math.random() * 101) + 50; // 50-150
+                    country.population = Math.max(1, country.population - populationLoss);
+                    country.money = Math.max(0, country.money - moneyCost);
+                    country.happiness = Math.max(0, country.happiness - 10);
+                    country.stability = Math.max(0, country.stability - 5);
+                    return `Lost ${populationLoss} population and spent $${moneyCost}.`;
+                }
+            },
+            {
+                name: "Resource Discovery",
+                message: "New resource vein discovered! Gained a large amount of materials.",
+                effect: (country) => {
+                    const materialsGain = Math.floor(Math.random() * 301) + 200; // 200-500
+                    country.materials += materialsGain;
+                    return `Gained ${materialsGain} materials.`;
+                }
+            },
+            {
+                name: "Public Unrest",
+                message: "Citizens are unhappy! Stability and happiness decreased.",
+                effect: (country) => {
+                    country.happiness = Math.max(0, country.happiness - 15);
+                    country.stability = Math.max(0, country.stability - 10);
+                    return `Happiness decreased by 15, stability by 10.`;
+                }
+            }
+        ];
+
+        // --- Game State Variables ---
+        let country = {};
+        let currentTurn = 1;
+        let gameMap = []; // 2D array representing the map grid
+        let selectedExpansionTile = null; // Stores coordinates of the tile selected for expansion
+
+        // --- DOM Elements ---
+        const countryNameDisplay = document.getElementById('country-name');
+        const turnDisplay = document.getElementById('turn-display');
+        const moneyDisplay = document.getElementById('money-display');
+        const materialsDisplay = document.getElementById('materials-display');
+        const populationDisplay = document.getElementById('population-display');
+        const happinessDisplay = document.getElementById('happiness-display');
+        const messageBox = document.getElementById('message-box');
+        const gameMapElement = document.getElementById('game-map');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const fullscreenButton = document.getElementById('fullscreen-button'); // Get the new fullscreen button
+
+        // --- Game Functions ---
+
+        /**
+         * Displays a message in the game's message box.
+         * @param {string} msg - The message to display.
+         * @param {string} type - Optional type ('success', 'error', 'info'). Affects styling.
+         */
+        function showMessage(msg, type = 'info') {
+            messageBox.textContent = msg;
+            messageBox.className = `message-box show ${type}`; // Add type class for styling
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000); // Message disappears after 5 seconds
+        }
+
+        /**
+         * Initializes the game state.
+         */
+        function initializeGame() {
+            const countryName = prompt("Welcome, great leader! What is the name of your country?", "My Nation");
+            country = {
+                name: countryName || "My Nation",
+                money: CONFIG.STARTING_MONEY,
+                materials: CONFIG.STARTING_MATERIALS,
+                population: CONFIG.STARTING_POPULATION,
+                happiness: CONFIG.STARTING_HAPPINESS,
+                stability: 80, // Added stability
+                buildings: {
+                    "Farm": 0,
+                    "Factory": 0,
+                    "Mine": 0
+                },
+                controlledTiles: [] // Stores {row, col} objects
+            };
+            currentTurn = 1;
+            selectedExpansionTile = null;
+            initializeMap();
+            updateUI();
+            showMessage(`Welcome to ${country.name}! Rule wisely.`, 'success');
+        }
+
+        /**
+         * Updates all UI elements based on the current country state.
+         */
+        function updateUI() {
+            countryNameDisplay.textContent = country.name;
+            turnDisplay.textContent = currentTurn;
+            moneyDisplay.textContent = `$${country.money.toFixed(0)}`;
+            materialsDisplay.textContent = country.materials.toFixed(0);
+            populationDisplay.textContent = country.population.toFixed(0);
+            happinessDisplay.textContent = `${country.happiness.toFixed(0)}%`;
+            // Add stability display if needed
+            renderMap();
+            checkGameOverConditions();
+        }
+
+        /**
+         * Handles the "End Turn" action.
+         */
+        function endTurn() {
+            currentTurn++;
+            simulateEconomy();
+            simulatePopulationGrowth();
+            simulateHappinessAndStability();
+            triggerRandomEvent();
+            updateUI();
+            showMessage(`Turn ${currentTurn} completed.`, 'info');
+        }
+
+        /**
+         * Simulates economic changes for the turn.
+         */
+        function simulateEconomy() {
+            let income = 0;
+            let materialGain = 0;
+
+            // Production from buildings
+            for (const type in country.buildings) {
+                const count = country.buildings[type];
+                if (count > 0 && BUILDINGS_DATA[type]) {
+                    income += BUILDINGS_DATA[type].production.money * count;
+                    materialGain += BUILDINGS_DATA[type].production.materials * count;
+                }
+            }
+
+            // Consumption by population
+            const moneyConsumption = country.population * CONFIG.BASE_POPULATION_CONSUMPTION_MONEY;
+            const materialsConsumption = country.population * CONFIG.BASE_POPULATION_CONSUMPTION_MATERIALS;
+
+            country.money += income - moneyConsumption;
+            country.materials += materialGain - materialsConsumption;
+
+            // Ensure resources don't go below zero (unless for game over conditions)
+            // country.money = Math.max(CONFIG.GAME_OVER_MONEY_THRESHOLD, country.money);
+            // country.materials = Math.max(0, country.materials); // Materials can't be negative for now
+        }
+
+        /**
+         * Simulates population growth based on happiness.
+         */
+        function simulatePopulationGrowth() {
+            const growthFactor = 1 + (country.happiness / 100) * CONFIG.POPULATION_GROWTH_FACTOR;
+            country.population *= growthFactor;
+        }
+
+        /**
+         * Simulates fluctuations in happiness and stability.
+         */
+        function simulateHappinessAndStability() {
+            country.happiness += Math.floor(Math.random() * (CONFIG.HAPPINESS_FLUCTUATION.max - CONFIG.HAPPINESS_FLUCTUATION.min + 1)) + CONFIG.HAPPINESS_FLUCTUATION.min;
+            country.happiness = Math.max(0, Math.min(100, country.happiness)); // Keep between 0-100
+
+            country.stability += Math.floor(Math.random() * (CONFIG.STABILITY_FLUCTUATION.max - CONFIG.STABILITY_FLUCTUATION.min + 1)) + CONFIG.STABILITY_FLUCTUATION.min;
+            country.stability = Math.max(0, Math.min(100, country.stability)); // Keep between 0-100
+        }
+
+        /**
+         * Triggers a random event based on a chance.
+         */
+        function triggerRandomEvent() {
+            if (Math.random() < CONFIG.EVENT_CHANCE_PER_TURN) {
+                const event = EVENTS_DATA[Math.floor(Math.random() * EVENTS_DATA.length)];
+                const specificEffectMessage = event.effect(country); // Apply effect and get specific message
+                showMessage(`Event: ${event.name}! ${event.message} ${specificEffectMessage}`, 'warning');
+            }
+        }
+
+        /**
+         * Handles building a structure.
+         * @param {string} type - The type of building to construct.
+         */
+        function buildStructure(type) {
+            const building = BUILDINGS_DATA[type];
+            if (!building) {
+                showMessage(`Unknown building type: ${type}.`, 'error');
+                return;
+            }
+
+            if (country.money >= building.cost.money && country.materials >= building.cost.materials) {
+                country.money -= building.cost.money;
+                country.materials -= building.cost.materials;
+                country.buildings[type] = (country.buildings[type] || 0) + 1;
+                // Apply immediate effects if any (e.g., happiness boost from a park)
+                if (building.effect && building.effect.happiness) {
+                    country.happiness = Math.min(100, country.happiness + building.effect.happiness);
+                }
+                showMessage(`Successfully built a ${type}!`, 'success');
+                updateUI();
+            } else {
+                showMessage(`Not enough resources to build a ${type}. Need $${building.cost.money} money and ${building.cost.materials} materials. You have $${country.money.toFixed(0)} and ${country.materials.toFixed(0)}.`, 'error');
+            }
+        }
+
+        /**
+         * Initializes the map grid and sets initial controlled tiles.
+         */
+        function initializeMap() {
+            gameMap = Array(CONFIG.MAP_SIZE).fill(0).map(() => Array(CONFIG.MAP_SIZE).fill('empty'));
+
+            // Start with a central controlled tile
+            const startRow = Math.floor(CONFIG.MAP_SIZE / 2);
+            const startCol = Math.floor(CONFIG.MAP_SIZE / 2);
+            country.controlledTiles.push({ row: startRow, col: startCol });
+            gameMap[startRow][startCol] = 'owned';
+        }
+
+        /**
+         * Renders (or re-renders) the map grid in the UI.
+         */
+        function renderMap() {
+            gameMapElement.innerHTML = ''; // Clear existing map
+            gameMapElement.style.gridTemplateColumns = `repeat(${CONFIG.MAP_SIZE}, 1fr)`;
+
+            for (let r = 0; r < CONFIG.MAP_SIZE; r++) {
+                for (let c = 0; c < CONFIG.MAP_SIZE; c++) {
+                    const tile = document.createElement('div');
+                    tile.classList.add('map-tile');
+                    tile.dataset.row = r;
+                    tile.dataset.col = c;
+
+                    if (gameMap[r][c] === 'owned') {
+                        tile.classList.add('owned');
+                        tile.textContent = '🏠'; // Home icon for owned
+                    } else {
+                        tile.classList.add('empty');
+                        tile.textContent = ''; // Empty tile
+                    }
+
+                    // Add click listener for map expansion
+                    tile.addEventListener('click', () => handleMapTileClick(r, c));
+                    gameMapElement.appendChild(tile);
+                }
+            }
+            // Re-apply selected state if any
+            if (selectedExpansionTile) {
+                const { row, col } = selectedExpansionTile;
+                const tileElement = gameMapElement.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (tileElement) {
+                    tileElement.classList.add('selected');
+                }
+            }
+        }
+
+        /**
+         * Handles clicks on map tiles for expansion selection.
+         * @param {number} row - The row of the clicked tile.
+         * @param {number} col - The column of the clicked tile.
+         */
+        function handleMapTileClick(row, col) {
+            // Clear previous selection
+            if (selectedExpansionTile) {
+                const prevTileElement = gameMapElement.querySelector(`[data-row="${selectedExpansionTile.row}"][data-col="${selectedExpansionTile.col}"]`);
+                if (prevTileElement) {
+                    prevTileElement.classList.remove('selected');
+                }
+            }
+
+            const isOwned = country.controlledTiles.some(t => t.row === row && t.col === col);
+            if (isOwned) {
+                showMessage("You already own this tile.", 'info');
+                selectedExpansionTile = null; // Deselect if owned
+                return;
+            }
+
+            // Check if adjacent to an owned tile
+            const isAdjacent = country.controlledTiles.some(ownedTile =>
+                (Math.abs(ownedTile.row - row) === 1 && ownedTile.col === col) ||
+                (Math.abs(ownedTile.col - col) === 1 && ownedTile.row === row)
+            );
+
+            if (!isAdjacent) {
+                showMessage("You can only expand to tiles adjacent to your current territory.", 'error');
+                selectedExpansionTile = null; // Deselect if not adjacent
+                return;
+            }
+
+            selectedExpansionTile = { row, col };
+            const currentTileElement = gameMapElement.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (currentTileElement) {
+                currentTileElement.classList.add('selected');
+                showMessage(`Tile (${row}, ${col}) selected for expansion. Click 'Expand Territory' button.`, 'info');
+            }
+        }
+
+        /**
+         * Attempts to expand territory to the currently selected tile.
+         */
+        function expandTerritory() {
+            if (!selectedExpansionTile) {
+                showMessage("Please select an empty, adjacent tile on the map first.", 'error');
+                return;
+            }
+
+            const { row, col } = selectedExpansionTile;
+            const expansionCostMoney = 50 * (country.controlledTiles.length / 10 + 1); // Cost increases with size
+            const expansionCostMaterials = 25 * (country.controlledTiles.length / 10 + 1);
+
+            if (country.money >= expansionCostMoney && country.materials >= expansionCostMaterials) {
+                country.money -= expansionCostMoney;
+                country.materials -= expansionCostMaterials;
+                country.controlledTiles.push({ row, col });
+                gameMap[row][col] = 'owned';
+                showMessage(`Successfully expanded to tile (${row}, ${col})! Cost: $${expansionCostMoney.toFixed(0)}, ${expansionCostMaterials.toFixed(0)} Materials.`, 'success');
+                selectedExpansionTile = null; // Clear selection after successful expansion
+                updateUI();
+            } else {
+                showMessage(`Not enough resources to expand. Need $${expansionCostMoney.toFixed(0)} money and ${expansionCostMaterials.toFixed(0)} materials. You have $${country.money.toFixed(0)} and ${country.materials.toFixed(0)}.`, 'error');
+            }
+        }
+
+        /**
+         * Checks for game over conditions.
+         */
+        function checkGameOverConditions() {
+            let gameOver = false;
+            let message = "";
+
+            if (country.money < CONFIG.GAME_OVER_MONEY_THRESHOLD) {
+                gameOver = true;
+                message = `Your country has gone bankrupt! Money dropped below $${CONFIG.GAME_OVER_MONEY_THRESHOLD}.`;
+            } else if (country.happiness < CONFIG.GAME_OVER_HAPPINESS_THRESHOLD) {
+                gameOver = true;
+                message = `Widespread discontent has led to your overthrow! Happiness dropped below ${CONFIG.GAME_OVER_HAPPINESS_THRESHOLD}%.`;
+            } else if (country.population <= 0) {
+                gameOver = true;
+                message = `Your population has dwindled to nothing. Your country is no more.`;
+            }
+
+            if (gameOver) {
+                gameOverMessage.textContent = message;
+                gameOverScreen.classList.add('show');
+            }
+        }
+
+        /**
+         * Toggles fullscreen mode for the document.
+         */
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                // If not in fullscreen, request fullscreen for the entire HTML document
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message} (${err.name})`);
+                    showMessage("Fullscreen mode could not be enabled. Your browser might block it or require a user gesture, or the embedding context (like Google Sites) needs to allow it.", 'error');
+                });
+            } else {
+                // If in fullscreen, exit fullscreen
+                document.exitFullscreen();
+            }
+        }
+
+        // --- Event Listeners ---
+        window.onload = () => {
+            initializeGame();
+
+            document.getElementById('next-turn-button').addEventListener('click', endTurn);
+            document.getElementById('reset-game-button').addEventListener('click', () => {
+                if (confirm("Are you sure you want to reset the game? All progress will be lost.")) { // Using confirm for full reset, as it's outside the main game loop
+                    location.reload();
+                }
+            });
+
+            document.getElementById('build-farm').addEventListener('click', () => buildStructure("Farm"));
+            document.getElementById('build-factory').addEventListener('click', () => buildStructure("Factory"));
+            document.getElementById('build-mine').addEventListener('click', () => buildStructure("Mine"));
+            document.getElementById('expand-territory-button').addEventListener('click', expandTerritory);
+            fullscreenButton.addEventListener('click', toggleFullscreen); // Attach event listener to the new button
+        };
+
+    </script>
+</body>
+</html>
